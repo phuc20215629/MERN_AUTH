@@ -121,8 +121,13 @@ export const login = async (req, res) => {
 };
 
 export const logout = async (req, res) => {
+  const user = await User.findById(req.user_id).select("-password");
+  if (!user) {
+    return res.status(401).json({ success: false, message: "User not found!" });
+  }
+
   res.clearCookie("token");
-  res.status(200).json({ succcess: true, message: "Logout!" });
+  res.status(200).json({ succcess: true, user, message: "Logout successful!" });
 };
 
 export const forgotPassword = async (req, res) => {
@@ -165,12 +170,10 @@ export const resetPassword = async (req, res) => {
       resetPasswordExpriredAt: { $gt: Date.now() },
     });
     if (!user) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Reset password token invalid or expired!",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Reset password token invalid or expired!",
+      });
     }
     const newPassword = await bcryptjs.hash(password, 10);
     user.password = newPassword;
@@ -185,5 +188,20 @@ export const resetPassword = async (req, res) => {
     });
   } catch (error) {
     console.log("Error in reset password ", error);
+  }
+};
+
+export const checkAuth = async (req, res) => {
+  try {
+    const user = await User.findById(req.user_id).select("-password");
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Not authenticated!" });
+    }
+
+    return res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.log("Error in check auth ", error);
   }
 };
